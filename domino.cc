@@ -16,7 +16,7 @@ class domino {
 		//using roots_tree = std::unordered_map<unsigned, std::unordered_set<unsigned>> [symbol_size][symbol_size];
 		
 		/* [word index] => [overlapping] => {other word index} (one that goes *before* the word) */
-		using database = std::unordered_map<unsigned, std::unordered_map<unsigned, std::vector<unsigned>>>;
+		using database = std::unordered_map<unsigned, std::unordered_map<unsigned, std::unordered_set<unsigned>>>;
 
 	/* data members */
 	private:
@@ -90,25 +90,29 @@ class domino {
 
 		void build_database(char const **words) {
 			for (unsigned word = 0; words[word] != nullptr; ++word) {
+			bool found_one = true;
 
-				for (unsigned letter = 0; words[word][letter] != 0; ++letter) {
+				for (unsigned letter = 0; found_one && words[word][letter] != 0; ++letter) {
 					char current = words[word][letter], next = words[word][letter + 1];
 					unsigned const current_index = (unsigned)(current - 'a');
 					unsigned const next_index = (unsigned)((next == 0) ? tail : next - 'a');
 
-					std::cout << "Looking for " << current << " => " << next << std::endl;
+					found_one = false;
 					
 					if (letter == 0) {
-						if (roots[current_index][tail][0].size() > 0) {
-							for (auto &e: roots[current_index][tail][0]) {
-								db[word][1].push_back(e);
-								std::cout << "Found a one-letter overlap" << std::endl;
+						for (auto &e: roots[current_index][tail][0]) {
+							if (e != word) {
+								db[word][1].insert(e);
+								found_one = true;
 							}
 						}
 					}
 
-					if (next_index > 200) {
-						continue;
+					for (auto &e: roots[current_index][next_index][letter]) {
+						if (e != word && db[word][letter + 1].count(e) == 1) {
+							db[word][letter + 2].insert(e);
+							found_one = true;
+						}
 					}
 				}
 			}
